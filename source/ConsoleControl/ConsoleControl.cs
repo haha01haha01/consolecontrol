@@ -41,76 +41,10 @@ namespace ConsoleControl
             //  Initialise the keymappings.
             InitialiseKeyMappings();
 
-            //  Handle process events.
-            processInterace.OnProcessOutput += processInterace_OnProcessOutput;
-            processInterace.OnProcessError += processInterace_OnProcessError;
-            processInterace.OnProcessInput += processInterace_OnProcessInput;
-            processInterace.OnProcessExit += processInterace_OnProcessExit;
-
             //  Wait for key down messages on the rich text box.
             richTextBoxConsole.KeyDown += richTextBoxConsole_KeyDown;
         }
-
-        /// <summary>
-        /// Handles the OnProcessError event of the processInterace control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="args">The <see cref="ProcessEventArgs"/> instance containing the event data.</param>
-        void processInterace_OnProcessError(object sender, ProcessEventArgs args)
-        {
-            //  Write the output, in red
-            WriteOutput(args.Content, Color.Red);
-
-            //  Fire the output event.
-            FireConsoleOutputEvent(args.Content);
-        }
-
-        /// <summary>
-        /// Handles the OnProcessOutput event of the processInterace control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="args">The <see cref="ProcessEventArgs"/> instance containing the event data.</param>
-        void processInterace_OnProcessOutput(object sender, ProcessEventArgs args)
-        {
-            //  Write the output, in white
-            WriteOutput(args.Content, Color.White);
-
-            //  Fire the output event.
-            FireConsoleOutputEvent(args.Content);
-        }
-
-        /// <summary>
-        /// Handles the OnProcessInput event of the processInterace control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="args">The <see cref="ProcessEventArgs"/> instance containing the event data.</param>
-        void processInterace_OnProcessInput(object sender, ProcessEventArgs args)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Handles the OnProcessExit event of the processInterace control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="args">The <see cref="ProcessEventArgs"/> instance containing the event data.</param>
-        void processInterace_OnProcessExit(object sender, ProcessEventArgs args)
-        {
-            //  Are we showing diagnostics?
-            if (ShowDiagnostics)
-            {
-                WriteOutput(Environment.NewLine + processInterace.ProcessFileName + " exited.", Color.FromArgb(255, 0, 255, 0));
-            }
-            
-            if (!this.IsHandleCreated)
-                return;
-            //  Read only again.
-            Invoke((Action)(() =>
-            {
-                richTextBoxConsole.ReadOnly = true;
-            }));
-        }
-
+        
         /// <summary>
         /// Initialises the key mappings.
         /// </summary>
@@ -181,8 +115,10 @@ namespace ConsoleControl
                 //  Get the input.
                 string input = richTextBoxConsole.Text.Substring(inputStart, (richTextBoxConsole.SelectionStart) - inputStart);
 
+                WriteOutput("\r\n", Color.White);
                 //  Write the input (without echoing).
                 WriteInput(input, Color.White, false);
+                e.Handled = true;
             }
         }
 
@@ -193,10 +129,7 @@ namespace ConsoleControl
         /// <param name="color">The color.</param>
         public void WriteOutput(string output, Color color)
         {
-            if (string.IsNullOrEmpty(lastInput) == false && 
-                (output == lastInput || output.Replace("\r\n", "") == lastInput))
-                return;
-                
+               
             if (!this.IsHandleCreated)
                 return;
 
@@ -246,42 +179,6 @@ namespace ConsoleControl
             }));
         }
 
-        
-
-        /// <summary>
-        /// Runs a process.
-        /// </summary>
-        /// <param name="fileName">Name of the file.</param>
-        /// <param name="arguments">The arguments.</param>
-        public void StartProcess(string fileName, string arguments)
-        {
-            //  Are we showing diagnostics?
-            if (ShowDiagnostics)
-            {
-                WriteOutput("Preparing to run " + fileName, Color.FromArgb(255, 0, 255, 0));
-                if (!string.IsNullOrEmpty(arguments))
-                    WriteOutput(" with arguments " + arguments + "." + Environment.NewLine, Color.FromArgb(255, 0, 255, 0));
-                else
-                    WriteOutput("." + Environment.NewLine, Color.FromArgb(255, 0, 255, 0));
-            }
-
-            //  Start the process.
-            processInterace.StartProcess(fileName, arguments);
-
-            //  If we enable input, make the control not read only.
-            if (IsInputEnabled)
-                richTextBoxConsole.ReadOnly = false;
-        }
-
-        /// <summary>
-        /// Stops the process.
-        /// </summary>
-        public void StopProcess()
-        {
-            //  Stop the interface.
-            processInterace.StopProcess();
-        }
-        
         /// <summary>
         /// Fires the console output event.
         /// </summary>
@@ -394,7 +291,7 @@ namespace ConsoleControl
         [Browsable(false)]
         public bool IsProcessRunning
         {
-            get { return processInterace.IsProcessRunning; }
+            get { return isInputEnabled; }
         }
 
         /// <summary>
